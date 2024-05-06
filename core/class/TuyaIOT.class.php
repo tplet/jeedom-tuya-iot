@@ -31,3 +31,7 @@ class TuyaIOT extends eqLogic
         */
     }
 }
+
+class TuyaIOTCmd extends cmd
+{
+}

@@ -51,11 +51,12 @@ try {
     }
 
     if (init('action') == 'discover') {
-        TuyaIOTService::discoverDevices(); // TODO get error message
-		if ($res === null)
-            ajax::success();
-        else
-            throw new Exception(__('Une erreur est survenue lors de la recherche des équipements ', __FILE__));
+        $nb = TuyaIOTService::discoverDevices();
+		if ($nb !== false) {
+            ajax::success('Découverte de ' . $nb . ' équipements effectuée avec succès');
+        } else {
+            ajax::error('Une erreur est survenue lors de la recherche des équipements');
+        }
 	}
 
     throw new Exception(__('Aucune méthode correspondante à : ', __FILE__) . init('action'));

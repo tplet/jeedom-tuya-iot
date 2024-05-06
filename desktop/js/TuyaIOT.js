@@ -16,7 +16,32 @@
  */
 
 
-
+/**
+ * Discover objects button
+ */
+$('.discover').on('click', function () {
+    $('#div_alert').showAlert({message: '{{Détection en cours}}', level: 'warning'});
+    $.ajax({
+        type: "POST",
+        url: "plugins/TuyaIOT/core/ajax/TuyaIOT.ajax.php",
+        data: {
+            action: "discover",
+            mode: $(this).attr('data-action'),
+        },
+        dataType: 'json',
+        global: false,
+        error: function (request, status, error) {
+            handleAjaxError(request, status, error);
+        },
+        success: function (data) {
+            if (data.state != 'ok') {
+                $('#div_alert').showAlert({message: data.result, level: 'danger'});
+                return;
+            }
+            $('#div_alert').showAlert({message: '{{Opération réalisée avec succès : Rafraichir la page F5}}', level: 'success'});
+        }
+    });
+});
 $('#bt_generatecommand').on('click', function () {
     bootbox.confirm('{{Etes-vous sûr de vouloir (re)générer toutes les commandes ?<br> Cela ne va pas supprimer les commandes existantes mais ajouter celles manquantes}}', function (result) {
         if (result) {

@@ -16,8 +16,9 @@ $token = $tuya->token->get_new( )->result->access_token;
 
 // OK
 // Get list of devices connected with android app
-//$devices = $tuya->devices( $token )->get_app_list( $app_id );
+$devices = $tuya->devices( $token )->get_app_list( $app_id );
 //var_dump($devices);
+//exit();
 
 // OK
 $deviceResult = $tuya->devices( $token )->get_details( $device_id );
@@ -27,6 +28,7 @@ $commandsCode = [];
 foreach ($device->status as $status) {
     $commandsCode[] = $status->code;
 }
+exit();
 
 /**
  * Get device logs
