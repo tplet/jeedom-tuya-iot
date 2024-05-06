@@ -1,0 +1,13 @@
+{
+    "name": "tplet/jeedom-tuya-iot",
+    "description": "Plugin Jeedom pour la gestion des objets connectés Tuya",
+    "require": {
+        "tuyapiphp/tuyapiphp": "^1.1"
+    },
+    "authors": [
+        {
+            "name": "Thibault PLET",
+            "email": "thibault.plet@gmail.com"
+        }
+    ]
+}

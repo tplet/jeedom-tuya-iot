@@ -1,0 +1,20 @@
+{
+	"id" : "TuyaIOT",
+	"name" : "TuyaIOT",
+	"description" : "Plugin de gestion des objets connectés SmartLife ou Tuya",
+	"licence" : "Apache License Version 2.0",
+	"author" : "tplet",
+	"require" : "3.2",
+	"category" : "automation protocol",
+	"hasDependency" : false,
+	"hasOwnDeamon" : false,
+	"maxDependancyInstallTime" : 0,
+	"changelog" : "https://github.com/tplet/jeedom-tuya-iot/changelog",
+	"documentation" : "https://github.com/tplet/jeedom-tuya-iot/",
+	"link" : {
+		"forum":"",
+		"video" : ""
+	},
+	"language" : ["fr_FR"],
+	"compatibility" : ["miniplus","smart","rpi","docker","diy","mobile"]
+}
