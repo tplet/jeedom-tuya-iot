@@ -228,6 +228,7 @@ class TuyaIOTService
         ?TuyaIOTCmd $cmd = null
     ): TuyaIOTCmd
     {
+        $rawValues = $rawCommand->values ? json_decode($rawCommand->values) : null;
         if (is_null($cmd)) {
             $cmd = new TuyaIOTCmd();
             $cmd->setLogicalId('');
@@ -237,7 +238,13 @@ class TuyaIOTService
             $cmd->setType('info');
             $cmd->setIsVisible(1);
             $cmd->setIsHistorized(1);
-
+            // Min/Max
+            if ($rawValues->min) {
+                $cmd->setConfiguration('minValue', $rawValues->min);
+            }
+            if ($rawValues->max) {
+                $cmd->setConfiguration('maxValue', $rawValues->max);
+            }
         }
 
         switch (strtolower($rawCommand->type)) {
@@ -252,17 +259,9 @@ class TuyaIOTService
                 break;
         }
 
-        $rawValues = $rawCommand->values ? json_decode($rawCommand->values) : null;
         // Retrieve unit
         if ($rawValues->unit) {
             $cmd->setUnite($rawValues->unit);
-        }
-        // Min/Max
-        if ($rawValues->min) {
-            $cmd->setConfiguration('minValue', $rawValues->min);
-        }
-        if ($rawValues->max) {
-            $cmd->setConfiguration('maxValue', $rawValues->max);
         }
 
         return $cmd;
@@ -358,7 +357,21 @@ class TuyaIOTService
                 $value = $rawLog->value;
                 // For numeric value, divide by 100 to obtain float value
                 if ($cmd->getSubType() == 'numeric') {
-                    $value /= 100;
+                    switch ($cmd->getUnite()) {
+                        // Except for percent
+                        case '%' :
+                            break;
+                        // Temperature
+                        case '℃' :
+                        case '°C' :
+                        case '℉' :
+                        case '°F' :
+                        $value /= 10;
+                            break;
+                        default:
+                            $value /= 100;
+                            break;
+                    }
                 }
 
                 self::logInfo('Add new value: "' . $value . '" at "' . $dateTimeFormatted . '" for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')' );
