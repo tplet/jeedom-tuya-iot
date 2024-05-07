@@ -290,6 +290,8 @@ class TuyaIOTService
             // Update device
             self::updateDeviceValues($eqLogic);
         }
+
+        self::logInfo('All devices values added!');
     }
 
     /**
@@ -300,7 +302,7 @@ class TuyaIOTService
      */
     static public function updateDeviceValues(TuyaIOT $eqLogic): bool
     {
-        self::logInfo('Update commands values for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
+        self::logDebug('Update commands values for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
 
         // Get log from device
         $raw = self::getTuyaApi()->devices(self::getToken())->get_logs($eqLogic->getLogicalId(), [
@@ -339,7 +341,7 @@ class TuyaIOTService
      */
     static protected function updateCommandValues(TuyaIOTCmd $cmd, array $rawLogs): bool
     {
-        self::logInfo('Update values for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
+        self::logDebug('Update values for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
 
         // For each values
         $valueAdded = 0;
@@ -374,14 +376,14 @@ class TuyaIOTService
                     }
                 }
 
-                self::logInfo('Add new value: "' . $value . '" at "' . $dateTimeFormatted . '" for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')' );
+                self::logDebug('Add new value: "' . $value . '" at "' . $dateTimeFormatted . '" for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')' );
                 $cmd->event($value, $dateTimeFormatted);
                 $valueAdded++;
             }
         }
 
         if ($valueAdded === 0) {
-            self::logInfo('No new value added for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
+            self::logDebug('No new value added for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
         }
 
         return true;
