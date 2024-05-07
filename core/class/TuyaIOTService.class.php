@@ -135,40 +135,69 @@ class TuyaIOTService
 
         // Create new eqLogic if not exists
         if (!is_object($eqLogic)) {
-            // Get detail
-            $rawDeviceDetail = self::getTuyaApi()->devices(self::getToken())->get_specifications($rawDevice->id);
-
-            // Check if success
-            if (!$rawDeviceDetail->success) {
-                self::logDebug('Error while getting device detail: ' . json_encode($rawDeviceDetail));
-                return null;
-            }
-            $rawDeviceDetail = $rawDeviceDetail->result;
-
             $eqLogic = self::generateTuyaIOT($rawDevice);
-            self::logInfo('New device, create it with ' . count($rawDeviceDetail->status) . ' commands');
-
-            // Save immediately
-            $eqLogic->save(true);
-
-            // And generate commands associated
-            foreach ($rawDeviceDetail->status as $rawCommand) {
-                $cmd = self::generateCommands($eqLogic, $rawCommand);
-                self::logInfo('New command "' . $cmd->getName() . '" created for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
-                $cmd->save();
-            }
+            self::logInfo('Create new device');
         } else
         {
-            self::logInfo("Update device data without recreate commands");
+            self::logInfo('Update device');
         }
 
         // Update data
         $eqLogic->setConfiguration('data', $rawDevice);
 
         // Save
-        $eqLogic->save();
+        $eqLogic->save(true);
+
+        // Generate command associated
+        if (!self::generateCommands($eqLogic)) {
+            return null;
+        }
 
         return $eqLogic;
+    }
+
+    /**
+     * Generate or update command associated to device
+     *
+     * @param TuyaIOT $eqLogic
+     * @return bool
+     */
+    static public function generateCommands(TuyaIOT $eqLogic): bool
+    {
+        // Get detail from device
+        $rawDeviceDetail = self::getTuyaApi()->devices(self::getToken())->get_specifications($eqLogic->getLogicalId());
+
+        // Check if success
+        if (!$rawDeviceDetail->success) {
+            self::logDebug('Error while getting device detail: ' . json_encode($rawDeviceDetail));
+            return false;
+        }
+        $rawDeviceDetail = $rawDeviceDetail->result;
+
+        // Reference all commands from eqLogic
+        $commands = [];
+        /** @var TuyaIOTCmd $cmd */
+        foreach ($eqLogic->getCmd() as $cmd) {
+            $commands[$cmd->getTuyaCode()] = $cmd;
+        }
+
+        // And generate commands associated
+        foreach ($rawDeviceDetail->status as $rawCommand) {
+            $cmd = $commands[$rawCommand->code] ?? null;
+            $isNew = $cmd === null;
+
+            $cmd = self::generateTuyaIOTCmd($eqLogic, $rawCommand, $cmd);
+
+            $preLog = $isNew ? 'Create command' : 'Update command';
+            self::logInfo(
+                $preLog . ' "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ') for device "' .
+                $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')'
+            );
+
+            $cmd->save();
+        }
+
+        return true;
     }
 
     /**
@@ -190,66 +219,70 @@ class TuyaIOTService
     }
 
     /**
-     * Generate command from raw command if not already exists
+     * Generate command from raw command or update it if provided
      *
      * @param TuyaIOT $eqLogic
      * @param object $rawCommand
-     * @return cmd
+     * @param ?TuyaIOTCmd $cmd Command to update
+     * @return TuyaIOTCmd
      */
-    static protected function generateCommands(TuyaIOT $eqLogic, object $rawCommand): cmd
+    static protected function generateTuyaIOTCmd(
+        TuyaIOT $eqLogic,
+        object $rawCommand,
+        ?TuyaIOTCmd $cmd = null
+    ): TuyaIOTCmd
     {
-        $cmd = $eqLogic->getCmd(null, $rawCommand->code);
-        if (!is_object($cmd)) {
+        if (is_null($cmd)) {
             $cmd = new TuyaIOTCmd();
             $cmd->setLogicalId('');
             $cmd->setEqLogic_id($eqLogic->getId());
             $cmd->setName($rawCommand->code);
-            $cmd->setConfiguration('tuyaCode', $rawCommand->code);
+            $cmd->setTuyaCode($rawCommand->code);
             $cmd->setType('info');
-
-            switch (strtolower($rawCommand->type)) {
-                case 'integer' :
-                    $cmd->setSubType('numeric');
-                    break;
-                case 'boolean' :
-                    $cmd->setSubType('binary');
-                    break;
-                default :
-                    $cmd->setSubType('string');
-                    break;
-            }
-
             $cmd->setIsVisible(1);
             $cmd->setIsHistorized(1);
 
-            $rawValues = $rawCommand->values ? json_decode($rawCommand->values) : null;
-            // Retrieve unit
-            if ($rawValues->unit) {
-                $cmd->setUnite($rawValues->unit);
-            }
-            // Min/Max
-            if ($rawValues->min) {
-                $cmd->setConfiguration('minValue', $rawValues->min);
-            }
-            if ($rawValues->max) {
-                $cmd->setConfiguration('maxValue', $rawValues->max);
-            }
+        }
+
+        switch (strtolower($rawCommand->type)) {
+            case 'integer' :
+                $cmd->setSubType('numeric');
+                break;
+            case 'boolean' :
+                $cmd->setSubType('binary');
+                break;
+            default :
+                $cmd->setSubType('string');
+                break;
+        }
+
+        $rawValues = $rawCommand->values ? json_decode($rawCommand->values) : null;
+        // Retrieve unit
+        if ($rawValues->unit) {
+            $cmd->setUnite($rawValues->unit);
+        }
+        // Min/Max
+        if ($rawValues->min) {
+            $cmd->setConfiguration('minValue', $rawValues->min);
+        }
+        if ($rawValues->max) {
+            $cmd->setConfiguration('maxValue', $rawValues->max);
         }
 
         return $cmd;
     }
 
-    static protected function logDebug($message)
+    static public function logDebug($message)
     {
         self::log('DEBUG', $message);
     }
 
-    static protected function logError($message)
+    static public function logError($message)
     {
         self::log('ERROR', $message);
     }
 
-    static protected function logInfo($message)
+    static public function logInfo($message)
     {
         self::log('INFO', $message);
     }

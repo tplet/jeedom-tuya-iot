@@ -9,29 +9,25 @@ class TuyaIOT extends eqLogic
 
 
     /**
-     * Recreate command from device
+     * Generate or update commands from device
      */
-    public function generateCommand()
+    public function generateCommand(TuyaIOT $eqLogic): bool
     {
-        /*
-        $session = TuyaIOTService::getTuyaApi();
-        $device = DeviceFactory::createDeviceFromId($session, $this->getLogicalId(), $this->getConfiguration('tuyaType'), $this->getConfiguration('tuyaName'));
-        $device->setData( $this->getConfiguration('tuyaData') );
-        $smartlifeDevice = new SmartLifeDevice($device);
+        TuyaIOTService::logInfo('Generate commands for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
 
-        SmartLifeLog::begin('RECREATE CMD');
-        SmartLifeLog::info('RECREATE CMD', $device, 'Rafraichissement des commandes');
-
-        $configCmdDevice = new SmartLifeConfig($device);
-        foreach ($configCmdDevice->getCommands() as $command) {
-            $this->addCommand($command, $device, true);
-        }
-
-        SmartLifeLog::end('RECREATE CMD');
-        */
+        return TuyaIOTService::generateCommands($eqLogic);
     }
 }
 
 class TuyaIOTCmd extends cmd
 {
+    public function getTuyaCode(): string
+    {
+        return $this->getConfiguration('tuyaCode');
+    }
+
+    public function setTuyaCode(string $code): void
+    {
+        $this->setConfiguration('tuyaCode', $code);
+    }
 }

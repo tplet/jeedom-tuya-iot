@@ -46,7 +46,7 @@ try {
         if (!is_object($eqLogic)) {
             throw new Exception(__('TuyaIOT eqLogic non trouvé : ', __FILE__) . init('id'));
         }
-        $eqLogic->generateCommand();
+        $eqLogic->generateCommand($eqLogic);
         ajax::success();
     }
 
