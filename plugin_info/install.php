@@ -27,7 +27,7 @@ function TuyaIOT_install() {
 		$cron->setFunction('updateAll');
 		$cron->setEnable(1);
 		$cron->setDeamon(0);
-		$cron->setSchedule('*/7 * * * *'); // Every minute
+		$cron->setSchedule('* * * * *'); // Every minute
 		$cron->setTimeout(30);
 		$cron->save();
 	}
@@ -47,7 +47,7 @@ function TuyaIOT_update() {
 		$cron->setFunction('updateAll');
 		$cron->setEnable(1);
 		$cron->setDeamon(0);
-    	$cron->setSchedule('*/7 * * * *'); // Every minute
+    	$cron->setSchedule('* * * * *'); // Every minute
     	$cron->setTimeout(30);
 		$cron->save();
 	}
