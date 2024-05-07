@@ -4,10 +4,10 @@ require __DIR__ . '/../vendor/autoload.php';
 require( 'config.php' );
 
 // UID
-$app_id = 'eu17145504419526G654';
+$app_id = 'xxxxx';
 
 // Panneaux solaires
-$device_id = 'bfa593f1451c0c56e2ro8x';
+$device_id = 'xxxx';
 
 $tuya = new \tuyapiphp\TuyaApi( $config );
 

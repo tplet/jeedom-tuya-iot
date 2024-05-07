@@ -9,8 +9,8 @@ India Data Center	https://openapi.tuyain.com
 */
 $config =
     [
-        "secretKey" => "1a429166834346b8bcbf8acaaaa80715" ,
-        "accessKey" => "hkpte4nvw3jgvruaq3xt" ,
+        "secretKey" => "xxxxxxxx" ,
+        "accessKey" => "xxxxxxx" ,
         'baseUrl'		=> 'https://openapi.tuyaeu.com' ,
         'debug'		=> false
     ];
