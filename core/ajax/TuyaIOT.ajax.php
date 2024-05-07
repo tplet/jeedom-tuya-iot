@@ -32,6 +32,7 @@ try {
   */  
     ajax::init();
 
+    // From config: check connection button
     if (init('action') == 'checkConnection') {
         if (TuyaIOTService::checkConnection()) {
             ajax::success();
@@ -40,6 +41,7 @@ try {
         }
     }
 
+    // From eqLogic: Regenerate command (create or update)
     if (init('action') == 'generateCommand') {
         /** @var TuyaIOT $eqLogic */
         $eqLogic = TuyaIOT::byId(init('id'));
@@ -50,6 +52,7 @@ try {
         ajax::success();
     }
 
+    // From TuyaIOT plugin homepage: Discover devices
     if (init('action') == 'discover') {
         $nb = TuyaIOTService::discoverDevices();
 		if ($nb !== false) {

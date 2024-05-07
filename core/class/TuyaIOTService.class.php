@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../../core/php/core.inc.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use tuyapiphp\TuyaApi;
-use Monolog\Logger;
+use DateTime;
 
 class TuyaIOTService
 {
@@ -175,11 +175,7 @@ class TuyaIOTService
         $rawDeviceDetail = $rawDeviceDetail->result;
 
         // Reference all commands from eqLogic
-        $commands = [];
-        /** @var TuyaIOTCmd $cmd */
-        foreach ($eqLogic->getCmd() as $cmd) {
-            $commands[$cmd->getTuyaCode()] = $cmd;
-        }
+        $commands = self::getAndGroupDeviceCommands($eqLogic);
 
         // And generate commands associated
         foreach ($rawDeviceDetail->status as $rawCommand) {
@@ -272,6 +268,146 @@ class TuyaIOTService
         return $cmd;
     }
 
+
+    /**
+     * Update all objects and command value (when enabled)
+     *
+     * @return void
+     * @see cron::byClassAndFunction('TuyaIOT', 'updateAll')
+     */
+    static public function updateAll(): void
+    {
+        self::logInfo('Start updating all devices values');
+
+        // Get all devices
+        $eqLogics = TuyaIOT::byType('TuyaIOT', true);
+
+        foreach ($eqLogics as $eqLogic) {
+            // Check if enabled
+            if (!$eqLogic->getIsEnable()) {
+                continue;
+            }
+
+            // Update device
+            self::updateDeviceValues($eqLogic);
+        }
+    }
+
+    /**
+     * Update values for each command of device
+     *
+     * @param TuyaIOT $eqLogic
+     * @return bool
+     */
+    static public function updateDeviceValues(TuyaIOT $eqLogic): bool
+    {
+        self::logInfo('Update commands values for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
+
+        // Get log from device
+        $raw = self::getTuyaApi()->devices(self::getToken())->get_logs($eqLogic->getLogicalId(), [
+            // @see: https://developer.tuya.com/en/docs/cloud/device-management?id=K9g6rfntdz78a#sjlx1
+            'type' => '7', // 7 = 'A data point is reported from the device to the cloud.'
+            'start_time' => 0, // Default: 7 days ago
+            'end_time' => time() * 1000,
+            'size' => 100,
+        ]);
+
+        // Check if success
+        if (!$raw->success) {
+            self::logDebug('Error while getting logs from device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . '): ' . json_encode($raw));
+            return false;
+        }
+        $raw = $raw->result;
+
+        // Prepare data
+        $rawDeviceLogs = self::groupDeviceLog($raw->logs);
+        $commands = self::getAndGroupDeviceCommands($eqLogic);
+
+        // Update values
+        foreach ($commands as $cmd) {
+            self::updateCommandValues($cmd, $rawDeviceLogs[$cmd->getTuyaCode()] ?? []);
+        }
+
+        return true;
+    }
+
+    /**
+     * Update values for specific command
+     *
+     * @param TuyaIOTCmd $cmd
+     * @param array $rawLogs
+     * @return bool
+     */
+    static protected function updateCommandValues(TuyaIOTCmd $cmd, array $rawLogs): bool
+    {
+        self::logInfo('Update values for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
+
+        // For each values
+        $valueAdded = 0;
+        foreach ($rawLogs as $rawLog) {
+            $dateTime = new DateTime('@' . floor($rawLog->event_time / 1000));
+            $dateTimeFormatted = $dateTime->format('Y-m-d H:i:s');
+            $history = history::byCmdIdDatetime($cmd->getId(), $dateTimeFormatted);
+
+            // If value already exist at this time, skip
+            if (is_object($history)) {
+                continue;
+            }
+            // Else, create new value
+            else {
+                $value = $rawLog->value;
+                // For numeric value, divide by 100 to obtain float value
+                if ($cmd->getSubType() == 'numeric') {
+                    $value /= 100;
+                }
+
+                self::logInfo('Add new value: "' . $value . '" at "' . $dateTimeFormatted . '" for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')' );
+                $cmd->event($value, $dateTimeFormatted);
+                $valueAdded++;
+            }
+        }
+
+        if ($valueAdded === 0) {
+            self::logInfo('No new value added for command "' . $cmd->getName() . '" (' . $cmd->getTuyaCode() . ')');
+        }
+
+        return true;
+    }
+
+    static protected function groupDeviceLog(array $rawDeviceLogs): array
+    {
+        $logs = [];
+
+        // First sort by time ASC
+        usort($rawDeviceLogs, function ($a, $b) {
+            return $a->event_time - $b->event_time;
+        });
+
+        // Then, group by command code
+        foreach ($rawDeviceLogs as $rawDeviceLog) {
+            $logs[$rawDeviceLog->code][] = $rawDeviceLog;
+        }
+
+        return $logs;
+    }
+
+    /**
+     * Get and group device commands
+     *
+     * @param TuyaIOT $eqLogic
+     * @return array
+     */
+    static protected function getAndGroupDeviceCommands(TuyaIOT $eqLogic): array
+    {
+        $commands = [];
+        /** @var TuyaIOTCmd $cmd */
+        foreach ($eqLogic->getCmd() as $cmd) {
+            $commands[$cmd->getTuyaCode()] = $cmd;
+        }
+
+        return $commands;
+    }
+
     static public function logDebug($message)
     {
         self::log('DEBUG', $message);
@@ -290,15 +426,5 @@ class TuyaIOTService
     static protected function log($level, $message): void
     {
         log::add('TuyaIOT', $level, $message);
-    }
-
-    /**
-     * Update all objects and command value (when enabled)
-     *
-     * @return void
-     */
-    static public function updateAll(): void
-    {
-        // Nothing to do for now
     }
 }

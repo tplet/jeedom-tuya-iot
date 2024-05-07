@@ -32,13 +32,13 @@ foreach ($device->status as $status) {
 // Commands detail (with unit ?)
 $deviceResult = $tuya->devices( $token )->get_specifications( $device_id );
 $device = $deviceResult;
-var_dump($device);
-exit();
+//var_dump($device);
+//exit();
 
 /**
  * Get device logs
  */
-$types = '1,2,3,4,5,6,7,8,9,10';
+$types = '7';
 $timeDuration = 3600 * 24 * 7; // 7 days
 // First log to obtain 'start_row_key'
 $logResult = $tuya->devices( $token )->get_logs( $device_id, [
@@ -47,7 +47,7 @@ $logResult = $tuya->devices( $token )->get_logs( $device_id, [
     'end_time' => time() * 1000,
     'size' => 100,
 //    'codes' => 'day_energy,out_power,energy',
-    'codes' => 'day_energy',
+//    'codes' => 'day_energy',
 ]);
 var_dump($logResult);
 /*if ($logResult->result->has_next) {

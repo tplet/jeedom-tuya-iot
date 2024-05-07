@@ -23,9 +23,9 @@ function TuyaIOT_install() {
     $cron = cron::byClassAndFunction('TuyaIOT', 'updateAll');
 	if (!is_object($cron)) {
 		$cron = new cron();
-		$cron->setClass('TuyaIOTService');
+		$cron->setClass('TuyaIOT');
 		$cron->setFunction('updateAll');
-		$cron->setEnable(0);
+		$cron->setEnable(1);
 		$cron->setDeamon(0);
 		$cron->setSchedule('*/7 * * * *'); // Every minute
 		$cron->setTimeout(30);
@@ -43,9 +43,9 @@ function TuyaIOT_update() {
     $cron = cron::byClassAndFunction('TuyaIOT', 'updateAll');
     if (!is_object($cron)) {
 		$cron = new cron();
-		$cron->setClass('TuyaIOTService');
+		$cron->setClass('TuyaIOT');
 		$cron->setFunction('updateAll');
-		$cron->setEnable(0);
+		$cron->setEnable(1);
 		$cron->setDeamon(0);
     	$cron->setSchedule('*/7 * * * *'); // Every minute
     	$cron->setTimeout(30);

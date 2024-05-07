@@ -6,8 +6,6 @@ require_once __DIR__ . '/TuyaIOTService.class.php';
 
 class TuyaIOT extends eqLogic
 {
-
-
     /**
      * Generate or update commands from device
      */
@@ -16,6 +14,17 @@ class TuyaIOT extends eqLogic
         TuyaIOTService::logInfo('Generate commands for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
 
         return TuyaIOTService::generateCommands($eqLogic);
+    }
+
+    /**
+     * Update all objects and command value (when enabled)
+     *
+     * @return void
+     * @see cron::byClassAndFunction('TuyaIOT', 'updateAll')
+     */
+    static public function updateAll(): void
+    {
+        TuyaIOTService::updateAll();
     }
 }
 
