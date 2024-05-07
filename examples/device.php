@@ -23,11 +23,16 @@ $devices = $tuya->devices( $token )->get_app_list( $app_id );
 // OK
 $deviceResult = $tuya->devices( $token )->get_details( $device_id );
 $device = $deviceResult->result;
-var_dump($device);
+//var_dump($device);
 $commandsCode = [];
 foreach ($device->status as $status) {
     $commandsCode[] = $status->code;
 }
+
+// Commands detail (with unit ?)
+$deviceResult = $tuya->devices( $token )->get_specifications( $device_id );
+$device = $deviceResult;
+var_dump($device);
 exit();
 
 /**

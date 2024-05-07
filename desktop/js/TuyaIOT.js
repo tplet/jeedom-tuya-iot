@@ -20,7 +20,11 @@
  * Discover objects button
  */
 $('.discover').on('click', function () {
-    $('#div_alert').showAlert({message: '{{Détection en cours}}', level: 'warning'});
+    $('#div_alert').showAlert({
+        message: '{{Détection en cours}}',
+        level: 'warning',
+        ttl: 10000, // 10s
+    });
     $.ajax({
         type: "POST",
         url: "plugins/TuyaIOT/core/ajax/TuyaIOT.ajax.php",

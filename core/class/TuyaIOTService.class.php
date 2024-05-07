@@ -123,37 +123,50 @@ class TuyaIOTService
     {
         // Check if data exists
         if (empty($rawDevice) || empty($rawDevice->id) || empty($rawDevice->name)) {
-            self::log(Logger::INFO, 'Missing data to add device');
-            self::log(Logger::DEBUG, json_encode($rawDevice));
+            self::logInfo('Missing data to add device');
+            self::logDebug(json_encode($rawDevice));
             return null;
         }
 
-        self::log(Logger::INFO, 'Discover device ' . $rawDevice->name . ' (' . $rawDevice->id . ')');
+        self::logInfo('Discover device "' . $rawDevice->name . '" (' . $rawDevice->id . ')');
 
         // Try to find existing eqLogic
         $eqLogic = TuyaIOT::byLogicalId($rawDevice->id, 'TuyaIOT');
 
         // Create new eqLogic if not exists
-        $isNew = !is_object($eqLogic);
-        if ($isNew) {
+        if (!is_object($eqLogic)) {
+            // Get detail
+            $rawDeviceDetail = self::getTuyaApi()->devices(self::getToken())->get_specifications($rawDevice->id);
+
+            // Check if success
+            if (!$rawDeviceDetail->success) {
+                self::logDebug('Error while getting device detail: ' . json_encode($rawDeviceDetail));
+                return null;
+            }
+            $rawDeviceDetail = $rawDeviceDetail->result;
+
             $eqLogic = self::generateTuyaIOT($rawDevice);
-            self::log(Logger::INFO, 'New device, create it');
+            self::logInfo('New device, create it with ' . count($rawDeviceDetail->status) . ' commands');
+
+            // Save immediately
+            $eqLogic->save(true);
+
+            // And generate commands associated
+            foreach ($rawDeviceDetail->status as $rawCommand) {
+                $cmd = self::generateCommands($eqLogic, $rawCommand);
+                self::logInfo('New command "' . $cmd->getName() . '" created for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
+                $cmd->save();
+            }
+        } else
+        {
+            self::logInfo("Update device data without recreate commands");
         }
 
         // Update data
         $eqLogic->setConfiguration('data', $rawDevice);
 
         // Save
-        $eqLogic->save(true);
-
-        // Generate commands if new device
-        if ($isNew) {
-            foreach ($rawDevice->status as $rawCommad) {
-                $cmd = self::generateCommands($eqLogic, $rawCommad);
-                $cmd->save();
-                self::log(Logger::INFO, 'New command created for this device: ' . $cmd->getLogicalId());
-            }
-        }
+        $eqLogic->save();
 
         return $eqLogic;
     }
@@ -191,13 +204,54 @@ class TuyaIOTService
             $cmd->setLogicalId('');
             $cmd->setEqLogic_id($eqLogic->getId());
             $cmd->setName($rawCommand->code);
+            $cmd->setConfiguration('tuyaCode', $rawCommand->code);
             $cmd->setType('info');
-            $cmd->setSubType('string');
+
+            switch (strtolower($rawCommand->type)) {
+                case 'integer' :
+                    $cmd->setSubType('numeric');
+                    break;
+                case 'boolean' :
+                    $cmd->setSubType('binary');
+                    break;
+                default :
+                    $cmd->setSubType('string');
+                    break;
+            }
+
             $cmd->setIsVisible(1);
             $cmd->setIsHistorized(1);
+
+            $rawValues = $rawCommand->values ? json_decode($rawCommand->values) : null;
+            // Retrieve unit
+            if ($rawValues->unit) {
+                $cmd->setUnite($rawValues->unit);
+            }
+            // Min/Max
+            if ($rawValues->min) {
+                $cmd->setConfiguration('minValue', $rawValues->min);
+            }
+            if ($rawValues->max) {
+                $cmd->setConfiguration('maxValue', $rawValues->max);
+            }
         }
 
         return $cmd;
+    }
+
+    static protected function logDebug($message)
+    {
+        self::log('DEBUG', $message);
+    }
+
+    static protected function logError($message)
+    {
+        self::log('ERROR', $message);
+    }
+
+    static protected function logInfo($message)
+    {
+        self::log('INFO', $message);
     }
 
     static protected function log($level, $message): void
