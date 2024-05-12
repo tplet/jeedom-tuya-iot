@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 use tuyapiphp\TuyaApi;
 use DateTime;
+use DateTimeZone;
 
 class TuyaIOTService
 {
@@ -346,7 +347,8 @@ class TuyaIOTService
         // For each values
         $valueAdded = 0;
         foreach ($rawLogs as $rawLog) {
-            $dateTime = new DateTime('@' . floor($rawLog->event_time / 1000));
+            $dateTime = new DateTime('@' . floor($rawLog->event_time / 1000), new DateTimeZone('UTC'));
+            $dateTime->setTimezone(new DateTimeZone(config::byKey('timezone', 'core', 'UTC')));
             $dateTimeFormatted = $dateTime->format('Y-m-d H:i:s');
             $history = history::byCmdIdDatetime($cmd->getId(), $dateTimeFormatted);
 
