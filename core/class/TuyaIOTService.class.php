@@ -66,9 +66,9 @@ class TuyaIOTService
     /**
      * Get token
      *
-     * @return string
+     * @return string|null
      */
-    static public function getToken(): string
+    static public function getToken(): ?string
     {
         if (self::$token === null) {
             self::$token = self::getTuyaApi()->token->get_new()->result->access_token;
@@ -94,9 +94,13 @@ class TuyaIOTService
      */
     static public function discoverDevices()
     {
-        $tuya = self::getTuyaApi();
         $token = self::getToken();
+        if (!$token) {
+            self::logError('No token: Connection not established or Tuya service unavailable');
+            return false;
+        }
 
+        $tuya = self::getTuyaApi();
         $rawDevices = $tuya->devices( $token )->get_app_list( self::getUid() );
 
         // Check if success
@@ -165,8 +169,14 @@ class TuyaIOTService
      */
     static public function generateCommands(TuyaIOT $eqLogic): bool
     {
+        $token = self::getToken();
+        if (!$token) {
+            self::logError('No token: Connection not established or Tuya service unavailable');
+            return false;
+        }
+
         // Get detail from device
-        $rawDeviceDetail = self::getTuyaApi()->devices(self::getToken())->get_specifications($eqLogic->getLogicalId());
+        $rawDeviceDetail = self::getTuyaApi()->devices($token)->get_specifications($eqLogic->getLogicalId());
 
         // Check if success
         if (!$rawDeviceDetail->success) {
@@ -304,9 +314,14 @@ class TuyaIOTService
     static public function updateDeviceValues(TuyaIOT $eqLogic): bool
     {
         self::logDebug('Update commands values for device "' . $eqLogic->getName() . '" (' . $eqLogic->getLogicalId() . ')');
+        $token = self::getToken();
+        if (!$token) {
+            self::logError('No token: Connection not established or Tuya service unavailable');
+            return false;
+        }
 
         // Get log from device
-        $raw = self::getTuyaApi()->devices(self::getToken())->get_logs($eqLogic->getLogicalId(), [
+        $raw = self::getTuyaApi()->devices($token)->get_logs($eqLogic->getLogicalId(), [
             // @see: https://developer.tuya.com/en/docs/cloud/device-management?id=K9g6rfntdz78a#sjlx1
             'type' => '7', // 7 = 'A data point is reported from the device to the cloud.'
             'start_time' => 0, // Default: 7 days ago
